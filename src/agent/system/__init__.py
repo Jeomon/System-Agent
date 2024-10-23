@@ -97,10 +97,11 @@ class SystemAgent(BaseAgent):
         
         if self.verbose:
             print(colored(f'Observation: {observation}',color='green',attrs=['bold']))
-        sleep(10) #To prevent from hitting api limit
         root=auto.GetRootControl()
         ally_tree,bboxes=ally_tree_and_coordinates(root)
         second_last_message=state.get('messages')[-2]
+        print(ally_tree,bboxes)
+        sleep(60) #To prevent from hitting api limit
         if isinstance(second_last_message,ImageMessage):
             text,_=second_last_message.content
             content=extract_observation(text).split('\n\n')[0]
