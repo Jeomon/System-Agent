@@ -31,11 +31,11 @@ class SystemMessage(BaseMessage):
         self.content=content
 
 class ImageMessage(BaseMessage):
-    def __init__(self,text:str=None,image_path:str=None,image_base_64:str=None):
+    def __init__(self,text:str=None,image_path:str=None,image_bytes:bytes=None):
         self.role='user'
-        if image_base_64 is not None or image_path is None:
-            self.content=(text,image_base_64)
-        elif image_path is not None or image_base_64 is None:
+        if image_bytes is not None or image_path is None:
+            self.content=(text,self.__encoder(image_bytes))
+        elif image_path is not None or image_bytes is None:
             self.content=(text,self.__image_to_base64(image_path))
         else:
             raise Exception('image_path and image_base_64 cannot be both None or both not None')
@@ -58,7 +58,10 @@ class ImageMessage(BaseMessage):
                 image_bytes = image.read()
         else:
             raise ValueError("Invalid image source. Must be a URL or file path.")
-        return base64.b64encode(image_bytes).decode('utf-8')
+        return self.__encoder(image_bytes)
+    
+    def __encoder(self,b:bytes):
+        return base64.b64encode(b).decode('utf-8')
 
 class ToolMessage(BaseMessage):
     def __init__(self,content:str,tool_call:str,tool_args:dict):

@@ -1,6 +1,6 @@
 from src.agent.system.tools import single_click_tool,double_click_tool,right_click_tool,type_tool,scroll_tool,shortcut_tool,key_tool
 from src.agent.system.utils import read_markdown_file,extract_llm_response,extract_observation
-from src.message import HumanMessage,SystemMessage,AIMessage
+from src.message import HumanMessage,SystemMessage,AIMessage,ImageMessage
 from src.agent.system.ally_tree import ally_tree_and_coordinates
 from langgraph.graph import StateGraph,START,END
 from src.agent.system.state import AgentState
@@ -10,9 +10,15 @@ from termcolor import colored
 import uiautomation as auto
 from json import dumps
 from time import sleep
+from io import BytesIO
+import pyautogui
+import platform
+
+pyautogui.FAILSAFE=False
+pyautogui.PAUSE=2.5
 
 class SystemAgent(BaseAgent):
-    def __init__(self,llm:BaseInference=None,verbose:bool=False,max_iteration:int=10) -> None:
+    def __init__(self,llm:BaseInference=None,verbose:bool=False,screenshot=False,max_iteration:int=10) -> None:
         self.name='System Agent'
         self.description=''
         tools=[single_click_tool,double_click_tool,right_click_tool,type_tool,scroll_tool,shortcut_tool,key_tool]
@@ -21,6 +27,7 @@ class SystemAgent(BaseAgent):
         self.system_prompt=read_markdown_file('src/agent/system/prompt.md')
         self.graph=self.create_graph()
         self.max_iteration=max_iteration
+        self.screenshot=screenshot
         self.verbose=verbose
         self.iteration=0
         self.llm=llm
@@ -83,8 +90,8 @@ class SystemAgent(BaseAgent):
             shortcut=action_input.get('shortcut')
             observation=tool(shortcut)
         elif action_name=='Key Tool':
-            key_name=action_input.get('key_name')
-            observation=tool(key_name)
+            key=action_input.get('key')
+            observation=tool(key)
         else:
             raise Exception('Tool not found.')
         
@@ -93,14 +100,24 @@ class SystemAgent(BaseAgent):
         sleep(10) #To prevent from hitting api limit
         root=auto.GetRootControl()
         ally_tree,bboxes=ally_tree_and_coordinates(root)
-        last_human_message=state.get('messages')[-2]
-        if isinstance(last_human_message,HumanMessage):
-            text=extract_observation(last_human_message.content).split('\n\n')[0]
-            state['messages'][-2]=HumanMessage(text)
+        second_last_message=state.get('messages')[-2]
+        if isinstance(second_last_message,ImageMessage):
+            text,_=second_last_message.content
+            content=extract_observation(text).split('\n\n')[0]
+            state['messages'][-2]=HumanMessage(content)
+        elif isinstance(second_last_message,HumanMessage):
+            text=second_last_message.content
+            content=extract_observation(text).split('\n\n')[0]
+            state['messages'][-2]=HumanMessage(content)
         state['messages'].pop() # Remove last message
+        if self.screenshot:
+            screenshot=pyautogui.screenshot()
+            io=BytesIO()
+            screenshot.save(io,format='PNG')
+            image_bytes=io.getvalue()
         ai_prompt=f'<Thought>{thought}</Thought>\n<Action-Name>{action_name}</Action-Name>\n<Action-Input>{dumps(action_input,indent=2)}</Action-Input>\n<Route>{route}</Route>'
         user_prompt=f'<Observation>{observation}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer.\nAlly tree:\n{ally_tree}</Observation>'
-        messages=[AIMessage(ai_prompt),HumanMessage(user_prompt)]
+        messages=[AIMessage(ai_prompt), HumanMessage(user_prompt) if not self.screenshot else ImageMessage(user_prompt,image_bytes)]
         return {**state,'agent_data':agent_data,'messages':messages,'bboxes':bboxes}
 
     def final(self,state:AgentState):
@@ -131,12 +148,16 @@ class SystemAgent(BaseAgent):
         root=auto.GetRootControl()
         ally_tree,bboxes=ally_tree_and_coordinates(root)
         user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer.\nAlly Tree:\n{ally_tree}'
+        parameters={
+            'os':platform.platform()
+        }
+        system_prompt=self.system_prompt.format(**parameters)
         state={
             'input':input,
             'output':'',
             'agent_data':{},
             'bboxes':bboxes,
-            'messages':[SystemMessage(self.system_prompt),HumanMessage(user_prompt)],
+            'messages':[SystemMessage(system_prompt),HumanMessage(user_prompt)],
         }
         agent_response=self.graph.invoke(state)
         return agent_response['output']

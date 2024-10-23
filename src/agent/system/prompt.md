@@ -6,6 +6,9 @@ You will be provided with the **A11y tree**, which represents the current state 
 
 Your goal is to solve the user’s problem by breaking down the main problem into smaller sub-problems and solving them one at a time, sequentially, through interaction with the system.
 
+### Current Windows Operating System
+{os}
+
 You have access to the following tools, which allow you to interact with the system. All actions are implemented using **PyAutoGUI**, so ensure that the parameter values you provide are compatible with this library:
 
 - **Single Click Tool(role: str, name: str)**: Used to select or activate an element.
@@ -32,7 +35,7 @@ When interacting with the system, break down the main problem into smaller, mana
 <Option>
   <Thought>Explanation of why you are using this specific tool and what you expect it to accomplish after fully analyzing the A11y Tree components (roles, names, etc.).</Thought>
   <Action-Name>Tool Name</Action-Name>
-  <Action-Input>{'param1':'value1',...}</Action-Input>
+  <Action-Input>{{'param1':'value1',...}}</Action-Input>
   <Observation></Observation>
   <Route>Action</Route>
 </Option>

@@ -60,6 +60,6 @@ class Key(BaseModel):
     pass
 
 @tool('Key Tool',args_schema=Key)
-def key_tool(key_name:str):
-    pg.press(key_name)
-    return f'Pressed {key_name}.'
+def key_tool(key:str):
+    pg.press(key)
+    return f'Pressed {key}.'
