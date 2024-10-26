@@ -13,7 +13,7 @@ You have access to the following tools, which allow you to interact with the sys
 
 - **Single Click Tool(role: str, name: str)**: Used to select or activate an element.
 - **Double Click Tool(role: str, name: str)**: Used to open applications or items.
-- **Right Click Tool(role: str, name: str)**: Used to access additional options or properties of an element or application.
+- **Right Click Tool(role: str, name: str)**: Used to access the context menu.
 - **Type Tool(role: str, name: str, text: str)**: Used to type text into input fields.
 - **Scroll Tool(direction: str, amount: int)**: Used to scroll through windows, applications, or documents.
 - **Shortcut Tool(shortcut: str)**: Used to execute keyboard shortcuts.

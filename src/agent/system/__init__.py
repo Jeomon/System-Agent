@@ -112,8 +112,11 @@ class SystemAgent(BaseAgent):
             state['messages'][-2]=HumanMessage(content)
         state['messages'].pop() # Remove last message
         ai_prompt=f'<Thought>{thought}</Thought>\n<Action-Name>{action_name}</Action-Name>\n<Action-Input>{dumps(action_input,indent=2)}</Action-Input>\n<Route>{route}</Route>'
-        user_prompt=f'<Observation>{observation}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer.\nAlly tree:\n{ally_tree}</Observation>'
-        messages=[AIMessage(ai_prompt), HumanMessage(user_prompt) if not self.screenshot else ImageMessage(user_prompt,self.screenshot_in_bytes())]
+        if not self.screenshot:
+            user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer.\nAlly Tree:\n{ally_tree}'
+        else:
+            user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree and Screenshot for gathering information and decide whether to act or answer.\nAlly Tree:\n{ally_tree}'
+        messages=[AIMessage(ai_prompt), HumanMessage(user_prompt) if not self.screenshot else ImageMessage(user_prompt,image_bytes=self.screenshot_in_bytes())]
         return {**state,'agent_data':agent_data,'messages':messages,'bboxes':bboxes}
 
     def screenshot_in_bytes(self):
@@ -150,7 +153,10 @@ class SystemAgent(BaseAgent):
     def invoke(self,input:str):
         root=auto.GetRootControl()
         ally_tree,bboxes=ally_tree_and_coordinates(root)
-        user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer.\nAlly Tree:\n{ally_tree}'
+        if not self.screenshot:
+            user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer.\nAlly Tree:\n{ally_tree}'
+        else:
+            user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree and Screenshot for gathering information and decide whether to act or answer.\nAlly Tree:\n{ally_tree}'
         parameters={
             'os':platform.platform()
         }
@@ -160,7 +166,7 @@ class SystemAgent(BaseAgent):
             'output':'',
             'agent_data':{},
             'bboxes':bboxes,
-            'messages':[SystemMessage(system_prompt),HumanMessage(user_prompt)],
+            'messages':[SystemMessage(system_prompt),HumanMessage(user_prompt) if not self.screenshot else ImageMessage(user_prompt,image_bytes=self.screenshot_in_bytes())],
         }
         agent_response=self.graph.invoke(state)
         return agent_response['output']
