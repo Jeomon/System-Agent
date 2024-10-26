@@ -100,7 +100,7 @@ class SystemAgent(BaseAgent):
         root=auto.GetRootControl()
         ally_tree,bboxes=ally_tree_and_coordinates(root)
         second_last_message=state.get('messages')[-2]
-        print(ally_tree,bboxes)
+        # print(ally_tree,bboxes)
         sleep(60) #To prevent from hitting api limit
         if isinstance(second_last_message,ImageMessage):
             text,_=second_last_message.content
@@ -111,15 +111,17 @@ class SystemAgent(BaseAgent):
             content=extract_observation(text).split('\n\n')[0]
             state['messages'][-2]=HumanMessage(content)
         state['messages'].pop() # Remove last message
-        if self.screenshot:
-            screenshot=pyautogui.screenshot()
-            io=BytesIO()
-            screenshot.save(io,format='PNG')
-            image_bytes=io.getvalue()
         ai_prompt=f'<Thought>{thought}</Thought>\n<Action-Name>{action_name}</Action-Name>\n<Action-Input>{dumps(action_input,indent=2)}</Action-Input>\n<Route>{route}</Route>'
         user_prompt=f'<Observation>{observation}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer.\nAlly tree:\n{ally_tree}</Observation>'
-        messages=[AIMessage(ai_prompt), HumanMessage(user_prompt) if not self.screenshot else ImageMessage(user_prompt,image_bytes)]
+        messages=[AIMessage(ai_prompt), HumanMessage(user_prompt) if not self.screenshot else ImageMessage(user_prompt,self.screenshot_in_bytes())]
         return {**state,'agent_data':agent_data,'messages':messages,'bboxes':bboxes}
+
+    def screenshot_in_bytes(self):
+        screenshot=pyautogui.screenshot()
+        io=BytesIO()
+        screenshot.save(io,format='PNG')
+        image_bytes=io.getvalue()
+        return image_bytes
 
     def final(self,state:AgentState):
         agent_data=state.get('agent_data')
