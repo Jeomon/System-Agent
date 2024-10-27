@@ -55,4 +55,6 @@ def extract_observation(text:str):
     if match:
         return match.group(1)
     else:
-        return None
+        return text
+
+

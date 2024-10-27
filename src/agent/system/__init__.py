@@ -30,6 +30,7 @@ class SystemAgent(BaseAgent):
         self.screenshot=screenshot
         self.verbose=verbose
         self.iteration=0
+        self.model=get_yolo_model('models/yolo.pt')
         self.llm=llm
 
     def find_element_by_role_and_name(self,state:AgentState,role:str,name:str):
