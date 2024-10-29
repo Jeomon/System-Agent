@@ -12,10 +12,6 @@ interactive_types = [
 def is_valid_name(name):
     return bool(re.match(r'^[\x20-\x7E]*$', name))
 
-# Get screen size
-screen_width = auto.GetRootControl().BoundingRectangle.width()
-screen_height = auto.GetRootControl().BoundingRectangle.height()
-
 def is_visible(bounding_rectangle, visible_area):
     """
     Check if any part of the bounding rectangle is within the visible area.

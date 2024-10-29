@@ -88,7 +88,7 @@ def ally_tree_and_coordinates(root):
     return tree_string, mapping
 
 # Generate the accessibility tree and coordinates
-ally, cord = ally_tree_and_coordinates(root)
+# ally, cord = ally_tree_and_coordinates(root)
 
-# Output the results
-print(ally, cord)
+# # Output the results
+# print(ally, cord)

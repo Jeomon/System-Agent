@@ -6,8 +6,11 @@ from langgraph.graph import StateGraph,START,END
 from src.agent.system.state import AgentState
 from src.inference import BaseInference
 from src.agent import BaseAgent
+from datetime import datetime
 from termcolor import colored
+from typing import Literal
 import uiautomation as auto
+from pathlib import Path
 from json import dumps
 from time import sleep
 from io import BytesIO
@@ -18,7 +21,7 @@ pyautogui.FAILSAFE=False
 pyautogui.PAUSE=2.5
 
 class SystemAgent(BaseAgent):
-    def __init__(self,llm:BaseInference=None,verbose:bool=False,screenshot=False,max_iteration:int=10) -> None:
+    def __init__(self,llm:BaseInference=None,verbose:bool=False,strategy:Literal['screenshot','ally_tree','combined']='ally_tree',screenshot=False,max_iteration:int=10) -> None:
         self.name='System Agent'
         self.description=''
         tools=[single_click_tool,double_click_tool,right_click_tool,type_tool,scroll_tool,shortcut_tool,key_tool]
@@ -27,10 +30,10 @@ class SystemAgent(BaseAgent):
         self.system_prompt=read_markdown_file('src/agent/system/prompt.md')
         self.graph=self.create_graph()
         self.max_iteration=max_iteration
+        self.strategy=strategy
         self.screenshot=screenshot
         self.verbose=verbose
         self.iteration=0
-        self.model=get_yolo_model('models/yolo.pt')
         self.llm=llm
 
     def find_element_by_role_and_name(self,state:AgentState,role:str,name:str):
@@ -45,7 +48,7 @@ class SystemAgent(BaseAgent):
 
     def reason(self,state:AgentState):
         llm_response=self.llm.invoke(state.get('messages'))
-        # print(llm_response.content)
+        print(llm_response.content)
         agent_data=extract_llm_response(llm_response.content)
         # print(dumps(agent_data,indent=2))
         if self.verbose:
@@ -101,7 +104,9 @@ class SystemAgent(BaseAgent):
         root=auto.GetRootControl()
         ally_tree,bboxes=ally_tree_and_coordinates(root)
         second_last_message=state.get('messages')[-2]
-        # print(ally_tree,bboxes)
+        print(ally_tree)
+        if self.screenshot:
+            self.save_screenshot()
         sleep(60) #To prevent from hitting api limit
         if isinstance(second_last_message,ImageMessage):
             text,_=second_last_message.content
@@ -113,11 +118,14 @@ class SystemAgent(BaseAgent):
             state['messages'][-2]=HumanMessage(content)
         state['messages'].pop() # Remove last message
         ai_prompt=f'<Thought>{thought}</Thought>\n<Action-Name>{action_name}</Action-Name>\n<Action-Input>{dumps(action_input,indent=2)}</Action-Input>\n<Route>{route}</Route>'
-        if not self.screenshot:
-            user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer.\nAlly Tree:\n{ally_tree}'
-        else:
-            user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree and Screenshot for gathering information and decide whether to act or answer.\nAlly Tree:\n{ally_tree}'
-        messages=[AIMessage(ai_prompt), HumanMessage(user_prompt) if not self.screenshot else ImageMessage(user_prompt,image_bytes=self.screenshot_in_bytes())]
+        ai_message=AIMessage(ai_prompt)
+        if self.strategy=='ally_tree':
+            user_prompt=f'Now analyze the A11y Tree for gathering information and decide whether to act or answer based on the ally tree.\nAlly Tree:\n{ally_tree}'
+            human_message=HumanMessage(user_prompt)
+        elif self.strategy=='screenshot':
+            user_prompt=f'Now analyze the A11y Tree and Screenshot for gathering information and decide whether to act or answer based on the ally tree.\nAlly Tree:\n{ally_tree}'
+            human_message=ImageMessage(text=user_prompt,image_bytes=self.screenshot_in_bytes())
+        messages=[ai_message,human_message]
         return {**state,'agent_data':agent_data,'messages':messages,'bboxes':bboxes}
 
     def screenshot_in_bytes(self):
@@ -126,6 +134,15 @@ class SystemAgent(BaseAgent):
         screenshot.save(io,format='PNG')
         image_bytes=io.getvalue()
         return image_bytes
+    
+    def save_screenshot(self):
+        date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        path = Path('./screenshots')
+        if not path.exists():
+            path.mkdir(parents=True, exist_ok=True)
+        file_path = path.joinpath(f'screenshot_{date_time}.png').as_posix()
+        screenshot = pyautogui.screenshot()
+        screenshot.save(file_path, format='PNG')
 
     def final(self,state:AgentState):
         agent_data=state.get('agent_data')
@@ -155,9 +172,9 @@ class SystemAgent(BaseAgent):
         root=auto.GetRootControl()
         ally_tree,bboxes=ally_tree_and_coordinates(root)
         if not self.screenshot:
-            user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer.\nAlly Tree:\n{ally_tree}'
+            user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer based on the ally tree.\nAlly Tree:\n{ally_tree}'
         else:
-            user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree and Screenshot for gathering information and decide whether to act or answer.\nAlly Tree:\n{ally_tree}'
+            user_prompt=f'User Query: {input}\n\nNow analyze the A11y Tree and Screenshot for gathering information and decide whether to act or answer based on the ally tree.\nAlly Tree:\n{ally_tree}'
         parameters={
             'os':platform.platform()
         }

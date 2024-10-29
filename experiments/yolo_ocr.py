@@ -9,7 +9,7 @@ model = YOLO('./models/best.pt')
 ocr = easyocr.Reader(['en'], gpu=False)
 
 # Load the image
-image_path = './screen2.png'
+image_path = './screenshots/screenshot_2024_10_29_08_48_59.jpeg'
 image = cv2.imread(image_path)
 h, w = image.shape[:2]  # Get the image dimensions (height, width)
 
@@ -19,12 +19,12 @@ def get_xyxy(input):
     return x, y, xp, yp
 
 # OCR detection
-results = ocr.readtext(image, paragraph=False)
+results = ocr.readtext(image, paragraph=False, text_threshold=0.8)
 ocr_boxes = [get_xyxy(box[0]) for box in results]
 texts = [box[1] for box in results]  # Extract the OCR text
 
 # Run YOLO model on the image
-results = model.predict(image, conf=0.01)
+results = model.predict(image, conf=0.05)
 boxes = results[0].boxes.xyxy.cpu().numpy()  # Bounding box coordinates (x1, y1, x2, y2)
 conf = results[0].boxes.conf.cpu().numpy()  # Confidence scores
 
@@ -57,13 +57,13 @@ if ocr_boxes:
 for i, box1 in enumerate(boxes):
     is_valid_box = True
     for j, box2 in enumerate(boxes):
-        if i != j and IoU(box1, box2) > 0.7 and box_area(box1) > box_area(box2):
+        if i != j and IoU(box1, box2) > 0.9 and box_area(box1) > box_area(box2):
             is_valid_box = False
             break
     if is_valid_box:
         # Add to filtered_boxes if no significant overlap with OCR boxes
         if ocr_boxes:
-            if not any(IoU(box1, box3) > 0.8 for k, box3 in enumerate(ocr_boxes)):
+            if not any(IoU(box1, box3) > 0.9 for k, box3 in enumerate(ocr_boxes)):
                 filtered_boxes.append(box1)
             else:
                 filtered_boxes.append(box1)
@@ -86,3 +86,5 @@ plt.figure(figsize=(10, 10))
 plt.imshow(image_rgb)
 plt.axis('off')  # Turn off the axis labels
 plt.show()
+
+print(filtered_boxes,texts)
