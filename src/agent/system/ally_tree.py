@@ -76,7 +76,8 @@ def ally_tree_and_coordinates(root):
         tree_string+=f"\nApplication: {app}\n{tree}\n"
     
     for key, coord in cordinates.items():
-        app_name, role, name = key
-        mapping.append(dict(role=role, name=name, x=coord[0], y=coord[1]))
+        _, role, name = key
+        x,y=coord
+        mapping.append(dict(role=role, name=name, x=x, y=y))
 
     return tree_string, mapping

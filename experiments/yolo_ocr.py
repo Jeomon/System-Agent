@@ -9,7 +9,7 @@ model = YOLO('./models/best.pt')
 ocr = easyocr.Reader(['en'], gpu=False)
 
 # Load the image
-image_path = './screenshots/screenshot_2024_10_29_08_48_59.jpeg'
+image_path = 'screen.png'
 image = cv2.imread(image_path)
 h, w = image.shape[:2]  # Get the image dimensions (height, width)
 

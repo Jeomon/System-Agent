@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 ocr = easyocr.Reader(['en'], gpu=False)
 
 # Load the image
-image_path = './screenshots/screenshot_2024_10_29_08_48_59.jpeg'
+image_path = 'screen.png'
 image = cv2.imread(image_path)
 h, w = image.shape[:2]  # Get the image dimensions (height, width)
 
@@ -15,7 +15,7 @@ def get_xyxy(input):
     return x, y, xp, yp
 
 # OCR detection
-results = ocr.readtext(image, paragraph=True,text_threshold=0.8)
+results = ocr.readtext(image, paragraph=False,text_threshold=0.8)
 ocr_boxes = [get_xyxy(box[0]) for box in results]
 texts = [box[1] for box in results]  # Extract the OCR text
 
