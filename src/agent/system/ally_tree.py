@@ -3,7 +3,7 @@ import re
 
 # List of common interactive control types (can be extended)
 interactive_types = [
-    'ButtonControl', 'EditControl', 'ComboBoxControl', 
+    'ButtonControl', 'EditControl', 'ComboBoxControl', 'RichEditBox',
     'CheckBoxControl', 'CheckBoxControl', 'RadioButtonControl', 
     'ListControl', 'SliderControl', 'TabControl', 'HyperlinkControl', 'ListItemControl'
 ]
@@ -48,7 +48,7 @@ def build_a11y_tree(node: auto.PaneControl, app_name: str, level=0, tree_dict: d
             tree_dict[app_name] = ""
 
         # Check if the control is interactive and has a valid name, and if it's visible
-        if is_valid_name(node.Name) and node.Name:
+        if is_valid_name(node.Name) and node.Name and node.ControlTypeName in interactive_types:
             bounding_rectangle = node.BoundingRectangle
             if bounding_rectangle and not bounding_rectangle.isempty() and is_visible(bounding_rectangle, node.BoundingRectangle):
                 x_center = bounding_rectangle.xcenter()

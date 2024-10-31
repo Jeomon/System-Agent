@@ -14,7 +14,7 @@ h, w = image.shape[:2]  # Get the image dimensions (height, width)
 
 # Padding to ensure labels and boxes fit within the image
 padding = 50  # Add padding around the image
-image_padded = cv2.copyMakeBorder(image, padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=(255, 255, 255))
+image_padded = cv2.copyMakeBorder(np.array(image), padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=(255, 255, 255))
 
 # Run YOLO model on the padded image
 results = model.predict(image, conf=0.01)  # Note: Pass the original image (without padding) to the model

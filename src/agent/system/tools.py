@@ -6,42 +6,55 @@ class SingleClick(BaseModel):
     pass
 
 @tool('Single Click Tool',args_schema=SingleClick)
-def single_click_tool(role:str,name:str,cordinate:tuple):
+def single_click_tool(label:str='',role:str='',name:str='',cordinate:tuple=()):
     x,y=cordinate
     pg.click(x=x,y=y,button='left',clicks=1)
-    return f'Single clicked the item {role} {name}.'
+    if role and name:
+        return f'Single clicked the item {role} {name}.'
+    else:
+        return f'Single clicked the label {label}.'
+
 
 class DoubleClick(BaseModel):
     pass
 
 @tool('Double Click Tool',args_schema=DoubleClick)
-def double_click_tool(role:str,name:str,cordinate:tuple):
+def double_click_tool(label:str='',role:str='',name:str='',cordinate:tuple=()):
     x,y=cordinate
     pg.click(x=x,y=y,button='left',clicks=2)
-    return f'Double clicked the item {role} {name}.'
+    if role and name:
+        return f'Double clicked the item {role} {name}.'
+    else:
+        return f'Double clicked the label {label}.'
 
 class RightClick(BaseModel):
     pass
 
 @tool('Right Click Tool',args_schema=RightClick)
-def right_click_tool(role:str,name:str,cordinate:tuple):
+def right_click_tool(label:str='',role:str='',name:str='',cordinate:tuple=()):
     x,y=cordinate
     pg.click(x=x,y=y,button='right')
-    return f'Right clicked the item {role} {name}.'
+    if role and name:
+        return f'Right clicked the item {role} {name}.'
+    else:
+        return f'Right clicked the label {label}.'
 
 class Type(BaseModel):
     pass
 
 @tool('Type Tool',args_schema=Type)
-def type_tool(role:str,name:str,text:str):
+def type_tool(label:str='',role:str='',name:str='',text:str=''):
     pg.typewrite(text)
-    return f'Typed {text} in {role} {name}.'
-
+    if role and name:
+        return f'Typed {text} in {role} {name}.'
+    else:
+        return f'Typed {text} in {label}.'
+    
 class Scroll(BaseModel):
     pass
 
 @tool('Scroll Tool',args_schema=Scroll)
-def scroll_tool(direction:str,amount:int):
+def scroll_tool(direction:str='',amount:int=0):
     if direction=='up':
         pg.scroll(amount)
     else:
@@ -52,7 +65,7 @@ class Shortcut(BaseModel):
     pass
 
 @tool('Shortcut Tool',args_schema=Shortcut)
-def shortcut_tool(shortcut:str):
+def shortcut_tool(shortcut:str=''):
     pg.hotkey(*shortcut.split('+'))
     return f'Shortcut {shortcut} triggered.'
 
@@ -60,6 +73,6 @@ class Key(BaseModel):
     pass
 
 @tool('Key Tool',args_schema=Key)
-def key_tool(key:str):
+def key_tool(key:str=''):
     pg.press(key)
     return f'Pressed {key}.'
