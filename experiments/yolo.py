@@ -8,7 +8,7 @@ import numpy as np
 model = YOLO('./models/best.pt')
 
 # Load the image (screenshot)
-image_path = 'screen.png'
+image_path = '1.png'
 image = cv2.imread(image_path)
 h, w = image.shape[:2]  # Get the image dimensions (height, width)
 
@@ -17,7 +17,7 @@ padding = 50  # Add padding around the image
 image_padded = cv2.copyMakeBorder(np.array(image), padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=(255, 255, 255))
 
 # Run YOLO model on the padded image
-results = model.predict(image, conf=0.01)  # Note: Pass the original image (without padding) to the model
+results = model.predict(image, conf=0.05)  # Note: Pass the original image (without padding) to the model
 boxes = results[0].boxes.xyxy.cpu().numpy()  # Bounding box coordinates (x1, y1, x2, y2)
 conf = results[0].boxes.conf.cpu().numpy()  # Confidence scores
 
@@ -47,7 +47,7 @@ filtered_boxes = []
 for i, box1 in enumerate(boxes):
     is_valid_box = True
     for j, box2 in enumerate(boxes):
-        if i != j and IoU(box1, box2) > 0.4 and box_area(box1) > box_area(box2):
+        if i != j and IoU(box1, box2) > 0.9 and box_area(box1) > box_area(box2):
             is_valid_box = False
             break
     if is_valid_box:

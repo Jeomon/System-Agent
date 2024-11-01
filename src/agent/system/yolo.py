@@ -28,7 +28,7 @@ def get_random_color():
 
 def model_predict(model, image):
     # Run YOLO model on the padded image
-    results = model.predict(image, conf=0.01)  # Note: Pass the original image (without padding) to the model
+    results = model.predict(image, conf=0.05)  # Note: Pass the original image (without padding) to the model
     boxes = results[0].boxes.xyxy.cpu().numpy()  # Bounding box coordinates (x1, y1, x2, y2)
     return boxes
 
