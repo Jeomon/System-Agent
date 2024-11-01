@@ -64,14 +64,15 @@ class SystemAgent(BaseAgent):
         return x,y
 
     def reason(self,state:AgentState):
-        llm_response=self.llm.invoke(state.get('messages'))
+        # print(state.get('messages'))
+        ai_message=self.llm.invoke(state.get('messages'))
         # print(llm_response.content)
-        agent_data=extract_llm_response(llm_response.content)
+        agent_data=extract_llm_response(ai_message.content)
         # print(dumps(agent_data,indent=2))
         if self.verbose:
             thought=agent_data.get('Thought')
             print(colored(f'Thought: {thought}',color='light_magenta',attrs=['bold']))
-        return {**state,'agent_data': agent_data}
+        return {**state,'messages':[ai_message],'agent_data': agent_data}
 
     def action(self,state:AgentState):
         agent_data=state.get('agent_data')
@@ -88,22 +89,22 @@ class SystemAgent(BaseAgent):
                 role=action_input.get('role')
                 name=action_input.get('name')
                 cordinate=self.find_element_by_role_and_name(state,role,name)
-                observation=tool(role,name,cordinate)
+                observation=tool(role=role,name=name,cordinate=cordinate)
             elif action_name=='Double Click Tool':
                 role=action_input.get('role')
                 name=action_input.get('name')
                 cordinate=self.find_element_by_role_and_name(state,role,name)
-                observation=tool(role,name,cordinate)
+                observation=tool(role=role,name=name,cordinate=cordinate)
             elif action_name=='Right Click Tool':
                 role=action_input.get('role')
                 name=action_input.get('name')
                 cordinate=self.find_element_by_role_and_name(state,role,name)
-                observation=tool(role,name,cordinate)
+                observation=tool(role=role,name=name,cordinate=cordinate)
             elif action_name=='Type Tool':
                 role=action_input.get('role')
                 name=action_input.get('name')
                 text=action_input.get('text')
-                observation=tool(role,name,text)
+                observation=tool(role=role,name=name,text=text)
             elif action_name=='Scroll Tool':
                 direction=action_input.get('direction')
                 amount=action_input.get('amount')
@@ -151,13 +152,13 @@ class SystemAgent(BaseAgent):
             print(colored(f'Observation: {observation}',color='green',attrs=['bold']))
         root=auto.GetRootControl()
         state['messages'].pop() # Remove last message
-        last_message=state.get('messages')[-2]
+        last_message=state.get('messages')[-1]
         sleep(10) #To prevent from hitting api limit
         if isinstance(last_message,(ImageMessage,HumanMessage)):
             if self.iteration==1:
                 content=f'Query:{state.get('input')}'
             else:
-                content='<Observation>Action Executed</Observation>'
+                content=f'<Observation>{state.get('previous_observation')}</Observation>'
             state['messages'][-1]=HumanMessage(content)
         ai_message=AIMessage(f'<Thought>{thought}</Thought>\n<Action-Name>{action_name}</Action-Name>\n<Action-Input>{dumps(action_input,indent=2)}</Action-Input>\n<Route>{route}</Route>')
         if self.strategy=='ally_tree':
@@ -185,7 +186,7 @@ class SystemAgent(BaseAgent):
         else:
             raise Exception('Strategy not found.')
         messages=[ai_message,human_message]
-        return {**state,'agent_data':agent_data,'messages':messages,'bboxes':bboxes}
+        return {**state,'agent_data':agent_data,'messages':messages,'bboxes':bboxes,'previous_observation':observation}
 
     def screenshot_in_bytes(self,screenshot):
         io=BytesIO()

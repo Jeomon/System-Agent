@@ -40,6 +40,10 @@ When interacting with the system, break down the main problem into smaller, mana
   <Route>Action</Route>
 </Option>
 
+- When interacting with Taskbar, links or apps from Start Menu single click is only needed to open
+- When interacting with Desktop apps or folders in file explorer double click.
+- Single click is for to select an element.
+
 NOTE: Only give actions that are from the ally tree don't give superficious ones.
 
 ---

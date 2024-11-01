@@ -38,7 +38,7 @@ def filter_boxes(boxes):
     for i, box1 in enumerate(boxes):
         is_valid_box = True
         for j, box2 in enumerate(boxes):
-            if i != j and IoU(box1, box2) > 0.4 and box_area(box1) > box_area(box2):
+            if i != j and IoU(box1, box2) > 0.9 and box_area(box1) > box_area(box2):
                 is_valid_box = False
                 break
         if is_valid_box:
