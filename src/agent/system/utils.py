@@ -49,7 +49,7 @@ def extract_llm_response(text):
             result['Route'] = route_match.group(1).strip()
     return result
 
-def parse_alley_tree(tree_str):
+def parse_ally_tree(tree_str):
     tree_elements = []
     # Split the string by lines
     lines = tree_str.strip().split('\n')
