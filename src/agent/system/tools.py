@@ -76,3 +76,11 @@ class Key(BaseModel):
 def key_tool(key:str=''):
     pg.press(key)
     return f'Pressed {key}.'
+
+class Move(BaseModel):
+    pass
+
+@tool('Move Tool',args_schema=Move)
+def move_tool(x,y):
+    pg.moveTo(x=x,y=y,duration=1)
+    return f'Cursor moved to the specified location.'

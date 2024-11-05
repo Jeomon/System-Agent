@@ -6,6 +6,9 @@ You will be provided with a **labelled screenshot**. This screenshot contains in
 ### Current Windows Operating System
 {os}
 
+### Resolution of the Screen
+Width x Height: {width} x {height}
+
 You have access to the following tools, which allow you to interact with the system. All actions are implemented using **PyAutoGUI**, so ensure that the parameter values you provide are compatible with this library:
 
 - **Single Click Tool(label_number: str)**: Used to select or activate an element identified by its label number.

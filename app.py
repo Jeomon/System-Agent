@@ -16,7 +16,7 @@ llm=ChatGemini(model='gemini-1.5-flash',api_key=api_key,temperature=0)
 # api_key=os.getenv('MISTRAL_API_KEY')
 # llm=ChatMistral(model='open-codestral-mamba',api_key=api_key,temperature=0)
 
-agent=SystemAgent(llm=llm,verbose=True,strategy='yolo',screenshot=True)
+agent=SystemAgent(llm=llm,verbose=True,strategy='ocr',screenshot=False)
 user_query=input('Enter your query: ')
 agent_response=agent.invoke(user_query)
 print(agent_response)

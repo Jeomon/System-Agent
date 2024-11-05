@@ -2,22 +2,25 @@ from src.agent.system.tools import single_click_tool,double_click_tool,right_cli
 from src.agent.system.utils import read_markdown_file,extract_llm_response
 from src.message import HumanMessage,SystemMessage,AIMessage,ImageMessage
 from src.agent.system.ally_tree import ally_tree_and_coordinates
-from src.agent.system.yolo import yolo_and_coordinates
 from src.agent.system.ocr import ocr_and_coordinates
+from src.agent.system.yolo import yolo_and_coordinates
 from langgraph.graph import StateGraph,START,END
 from src.agent.system.state import AgentState
 from src.inference import BaseInference
 from src.agent import BaseAgent
 from datetime import datetime
 from termcolor import colored
-from typing import Literal
+from ultralytics import YOLO
 import uiautomation as auto
+from typing import Literal
+from easyocr import Reader
 from pathlib import Path
 from json import dumps
 from time import sleep
 from io import BytesIO
-from ultralytics import YOLO
-from easyocr import Reader
+from PIL import Image
+import numpy as np
+import cv2 as cv
 import pyautogui
 import platform
 
@@ -33,7 +36,6 @@ class SystemAgent(BaseAgent):
         self.tools={tool.name:tool for tool in tools}
         self.strategy=strategy
         self.system_prompt=read_markdown_file(f'src/agent/system/prompt/{self.strategy}.md')
-        self.ocr_prompt=read_markdown_file('src/agent/system/prompt/update_ally_tree_ocr.md')
         self.graph=self.create_graph()
         self.max_iteration=max_iteration
         self.reader=Reader(['en'],gpu=False)
@@ -50,7 +52,7 @@ class SystemAgent(BaseAgent):
                 x,y=bbox.get('x'),bbox.get('y')
                 break
         if x is None or y is None:
-            raise Exception('Bounding Box not found')
+            raise Exception('Role and Name is invalid')
         return x,y
     
     def find_element_by_label(self,state:AgentState,label:str):
@@ -60,13 +62,13 @@ class SystemAgent(BaseAgent):
                 x,y=bbox.get('x'),bbox.get('y')
                 break
         if x is None or y is None:
-            raise Exception('Bounding Box not found')
+            raise Exception('Label is invalid')
         return x,y
 
     def reason(self,state:AgentState):
         # print(state.get('messages'))
         ai_message=self.llm.invoke(state.get('messages'))
-        # print(llm_response.content)
+        # print(ai_message.content)
         agent_data=extract_llm_response(ai_message.content)
         # print(dumps(agent_data,indent=2))
         if self.verbose:
@@ -85,67 +87,78 @@ class SystemAgent(BaseAgent):
             print(colored(f'Action Input: {action_input}',color='blue',attrs=['bold']))
         tool=self.tools[action_name]
         if self.strategy in['ocr','ally_tree']:
-            if action_name=='Single Click Tool':
-                role=action_input.get('role')
-                name=action_input.get('name')
-                cordinate=self.find_element_by_role_and_name(state,role,name)
-                observation=tool(role=role,name=name,cordinate=cordinate)
-            elif action_name=='Double Click Tool':
-                role=action_input.get('role')
-                name=action_input.get('name')
-                cordinate=self.find_element_by_role_and_name(state,role,name)
-                observation=tool(role=role,name=name,cordinate=cordinate)
-            elif action_name=='Right Click Tool':
-                role=action_input.get('role')
-                name=action_input.get('name')
-                cordinate=self.find_element_by_role_and_name(state,role,name)
-                observation=tool(role=role,name=name,cordinate=cordinate)
-            elif action_name=='Type Tool':
-                role=action_input.get('role')
-                name=action_input.get('name')
-                text=action_input.get('text')
-                observation=tool(role=role,name=name,text=text)
-            elif action_name=='Scroll Tool':
-                direction=action_input.get('direction')
-                amount=action_input.get('amount')
-                observation=tool(direction,amount)
-            elif action_name=='Shortcut Tool':
-                shortcut=action_input.get('shortcut')
-                observation=tool(shortcut)
-            elif action_name=='Key Tool':
-                key=action_input.get('key')
-                observation=tool(key)
-            else:
-                raise Exception('Tool not found.')
+            try:
+                if action_name=='Single Click Tool':
+                    role=action_input.get('role')
+                    name=action_input.get('name')
+                    cordinate=self.find_element_by_role_and_name(state,role,name)
+                    observation=tool(role=role,name=name,cordinate=cordinate)
+                elif action_name=='Double Click Tool':
+                    role=action_input.get('role')
+                    name=action_input.get('name')
+                    cordinate=self.find_element_by_role_and_name(state,role,name)
+                    observation=tool(role=role,name=name,cordinate=cordinate)
+                elif action_name=='Right Click Tool':
+                    role=action_input.get('role')
+                    name=action_input.get('name')
+                    cordinate=self.find_element_by_role_and_name(state,role,name)
+                    observation=tool(role=role,name=name,cordinate=cordinate)
+                elif action_name=='Type Tool':
+                    role=action_input.get('role')
+                    name=action_input.get('name')
+                    text=action_input.get('text')
+                    observation=tool(role=role,name=name,text=text)
+                elif action_name=='Scroll Tool':
+                    direction=action_input.get('direction')
+                    amount=action_input.get('amount')
+                    observation=tool(direction,amount)
+                elif action_name=='Shortcut Tool':
+                    shortcut=action_input.get('shortcut')
+                    observation=tool(shortcut)
+                elif action_name=='Key Tool':
+                    key=action_input.get('key')
+                    observation=tool(key)
+                elif action_name=='MoveTo Tool':
+                    w,h=state.get('resolution')
+                    x=float(action_input.get('x_percent'))*w
+                    y=float(action_input.get('y_percent'))*h
+                    observation=tool(int(x),int(y))
+                else:
+                    raise Exception('Tool not found.')
+            except Exception as error:
+                observation=error
         elif self.strategy=='yolo':
-            if action_name=='Single Click Tool':
-                label_number=action_input.get('label_number')
-                cordinate=self.find_element_by_label(state,label_number)
-                observation=tool(label=label_number,cordinate=cordinate)
-            elif action_name=='Double Click Tool':
-                label_number=action_input.get('label_number')
-                cordinate=self.find_element_by_label(state,label_number)
-                observation=tool(label=label_number,cordinate=cordinate)
-            elif action_name=='Right Click Tool':
-                label_number=action_input.get('label_number')
-                cordinate=self.find_element_by_label(state,label_number)
-                observation=tool(label=label_number,cordinate=cordinate)
-            elif action_name=='Type Tool':
-                label_number=action_input.get('label_number')
-                text=action_input.get('text')
-                observation=tool(label=label_number,text=text)
-            elif action_name=='Scroll Tool':
-                direction=action_input.get('direction')
-                amount=action_input.get('amount')
-                observation=tool(direction,amount)
-            elif action_name=='Shortcut Tool':
-                shortcut=action_input.get('shortcut')
-                observation=tool(shortcut)
-            elif action_name=='Key Tool':
-                key=action_input.get('key')
-                observation=tool(key)
-            else:
-                raise Exception('Tool not found.')
+            try:
+                if action_name=='Single Click Tool':
+                    label_number=action_input.get('label_number')
+                    cordinate=self.find_element_by_label(state,label_number)
+                    observation=tool(label=label_number,cordinate=cordinate)
+                elif action_name=='Double Click Tool':
+                    label_number=action_input.get('label_number')
+                    cordinate=self.find_element_by_label(state,label_number)
+                    observation=tool(label=label_number,cordinate=cordinate)
+                elif action_name=='Right Click Tool':
+                    label_number=action_input.get('label_number')
+                    cordinate=self.find_element_by_label(state,label_number)
+                    observation=tool(label=label_number,cordinate=cordinate)
+                elif action_name=='Type Tool':
+                    label_number=action_input.get('label_number')
+                    text=action_input.get('text')
+                    observation=tool(label=label_number,text=text)
+                elif action_name=='Scroll Tool':
+                    direction=action_input.get('direction')
+                    amount=action_input.get('amount')
+                    observation=tool(direction,amount)
+                elif action_name=='Shortcut Tool':
+                    shortcut=action_input.get('shortcut')
+                    observation=tool(shortcut)
+                elif action_name=='Key Tool':
+                    key=action_input.get('key')
+                    observation=tool(key)
+                else:
+                    raise Exception('Tool not found.')
+            except Exception as error:
+                observation=error
         else:
             raise Exception('Strategy not found.')
         if self.verbose:
@@ -161,25 +174,23 @@ class SystemAgent(BaseAgent):
                 content=f'<Observation>{state.get('previous_observation')}</Observation>'
             state['messages'][-1]=HumanMessage(content)
         ai_message=AIMessage(f'<Thought>{thought}</Thought>\n<Action-Name>{action_name}</Action-Name>\n<Action-Input>{dumps(action_input,indent=2)}</Action-Input>\n<Route>{route}</Route>')
+        screenshot=pyautogui.screenshot()
+        if self.screenshot:
+            self.save_screenshot(screenshot)
         if self.strategy=='ally_tree':
             ally_tree,bboxes=ally_tree_and_coordinates(root)
             # print(ally_tree)
-            prompt=f'Ally Tree:\n{ally_tree}\n\nNow analyze the A11y Tree for gathering information and decide whether to act or answer based on the ally tree.'
-            human_message=HumanMessage(f'<Observation>{observation}\n\n{prompt}</Observation>')
-        elif self.strategy=='ocr':
-            screenshot=pyautogui.screenshot()
-            if self.screenshot:
-                self.save_screenshot(screenshot)
             image_bytes=self.screenshot_in_bytes(screenshot=screenshot)
-            ally_tree,bboxes=ocr_and_coordinates(root,screenshot)
+            prompt=f'Ally Tree:\n{ally_tree}\n\nNow analyze the A11y Tree and Screenshot for gathering information and decide whether to act or answer based on the ally tree.'
+            human_message=ImageMessage(text=f'<Observation>{observation}\n\n{prompt}</Observation>',image_bytes=image_bytes)
+        elif self.strategy=='ocr':
+            ally_tree,bboxes=ocr_and_coordinates(root,self.reader,self.llm,screenshot)
             # print(ally_tree)
+            image_bytes=self.screenshot_in_bytes(screenshot=screenshot)
             prompt=f'Ally Tree:\n{ally_tree}\n\nNow analyze the A11y Tree and Screenshot for gathering information and decide whether to act or answer based on the ally tree.'
             human_message=ImageMessage(text=f'<Observation>{observation}\n\n{prompt}</Observation>',image_bytes=image_bytes)
         elif self.strategy=='yolo':
-            screenshot=pyautogui.screenshot()
             label_screenshot,bboxes=yolo_and_coordinates(self.yolo_model,screenshot)
-            if self.screenshot:
-                self.save_screenshot(label_screenshot)
             image_bytes=self.screenshot_in_bytes(screenshot=label_screenshot)
             prompt=f'Now analyze the labeled screenshot for gathering information and decide whether to act or answer.'
             human_message=ImageMessage(text=f'<Observation>{observation}\n\n{prompt}</Observation>',image_bytes=image_bytes)
@@ -189,10 +200,17 @@ class SystemAgent(BaseAgent):
         return {**state,'agent_data':agent_data,'messages':messages,'bboxes':bboxes,'previous_observation':observation}
 
     def screenshot_in_bytes(self,screenshot):
+        screenshot=self.include_cursor(screenshot)
         io=BytesIO()
         screenshot.save(io,format='PNG')
         image_bytes=io.getvalue()
         return image_bytes
+    
+    def include_cursor(self,screenshot,dot_color=(0, 0, 255), dot_radius=5):
+        screenshot = np.array(screenshot)
+        cursor_x, cursor_y = pyautogui.position()
+        cv.circle(screenshot, (cursor_x, cursor_y), dot_radius, dot_color, -1)
+        return Image.fromarray(screenshot)
     
     def save_screenshot(self,screenshot):
         date_time = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
@@ -218,8 +236,7 @@ class SystemAgent(BaseAgent):
             agent_data=state.get('agent_data')
             return agent_data.get('Route').lower()
         else:
-            return 'final'
-        
+            return 'final'    
 
     def create_graph(self):
         graph=StateGraph(AgentState)
@@ -236,27 +253,31 @@ class SystemAgent(BaseAgent):
 
     def invoke(self,input:str):
         root=auto.GetRootControl()
+        screenshot=pyautogui.screenshot()
         if self.strategy=='ally_tree':
-            ally_tree,bboxes=ally_tree_and_coordinates(root)
-            human_message=HumanMessage(f'User Query: {input}\n\nAlly Tree:\n{ally_tree}\nNow analyze the A11y Tree for gathering information and decide whether to act or answer based on the ally tree.')
-        elif self.strategy=='ocr':
-            screenshot=pyautogui.screenshot()
             if self.screenshot:
                 self.save_screenshot(screenshot)
-            ally_tree,bboxes=self.ally_tree_ocr_and_coordinates(root,screenshot) 
+            ally_tree,bboxes=ally_tree_and_coordinates(root)
+            image_bytes=self.screenshot_in_bytes(screenshot=screenshot)
+            human_message=ImageMessage(image_bytes=image_bytes,text=f'User Query: {input}\n\nAlly Tree:\n{ally_tree}\nNow analyze the A11y Tree and Screenshot for gathering information and decide whether to act or answer based on the ally tree.')
+        elif self.strategy=='ocr':
+            if self.screenshot:
+                self.save_screenshot(screenshot)
+            ally_tree,bboxes=ocr_and_coordinates(root,self.reader,self.llm,screenshot)
             image_bytes=self.screenshot_in_bytes(screenshot=screenshot)
             human_message=ImageMessage(image_bytes=image_bytes,text=f'User Query: {input}\n\nAlly Tree:\n{ally_tree}\nNow analyze the A11y Tree and Screenshot for gathering information and decide whether to act or answer based on the ally tree.')
         elif self.strategy=='yolo':
-            screenshot=pyautogui.screenshot()
-            label_screenshot,bboxes=yolo_and_coordinates(self.yolo_model,screenshot)
             if self.screenshot:
                 self.save_screenshot(label_screenshot)
+            label_screenshot,bboxes=yolo_and_coordinates(self.yolo_model,screenshot)
             image_bytes=self.screenshot_in_bytes(screenshot=label_screenshot)
             human_message=ImageMessage(image_bytes=image_bytes,text=f'User Query: {input}\n\nNow analyze the labeled screenshot for gathering information and decide whether to act or answer.')
         else:
             raise Exception('Strategy not found.')
         parameters={
-            'os':platform.platform()
+            'os':platform.platform(),
+            'width':screenshot.width,
+            'height':screenshot.height
         }
         system_message=SystemMessage(self.system_prompt.format(**parameters))
         state={
@@ -264,6 +285,7 @@ class SystemAgent(BaseAgent):
             'output':'',
             'agent_data':{},
             'bboxes':bboxes,
+            'resolution': (screenshot.width,screenshot.height),
             'messages':[system_message,human_message],
         }
         agent_response=self.graph.invoke(state)

@@ -3,18 +3,14 @@ import re
 
 # List of common interactive control types (can be extended)
 interactive_types = [
-    'ButtonControl', 'EditControl', 'ComboBoxControl', 
-    'CheckBoxControl', 'CheckBoxControl', 'RadioButtonControl', 'TextControl',
+    'ButtonControl', 'EditControl', 'ComboBoxControl', 'RichEditBox',
+    'CheckBoxControl', 'CheckBoxControl', 'RadioButtonControl', 
     'ListControl', 'SliderControl', 'TabControl', 'HyperlinkControl', 'ListItemControl'
 ]
 
 # Function to check if the name is valid (contains only printable ASCII characters)
 def is_valid_name(name):
     return bool(re.match(r'^[\x20-\x7E]*$', name))
-
-# Get screen size
-screen_width = auto.GetRootControl().BoundingRectangle.width()
-screen_height = auto.GetRootControl().BoundingRectangle.height()
 
 def is_visible(bounding_rectangle, visible_area):
     """
@@ -39,30 +35,38 @@ def build_a11y_tree(node: auto.PaneControl, app_name: str, level=0, tree_dict: d
         # Check if the window is visible on the screen
         if bounding_rectangle and is_visible(bounding_rectangle, auto.GetRootControl().BoundingRectangle):
             visible_window = True
+            width = bounding_rectangle.right - bounding_rectangle.left
+            height = bounding_rectangle.bottom - bounding_rectangle.top
         else:
             visible_window = False
+            width, height = None, None
     else:
         visible_window = True  # For elements inside a visible window
+        width, height = None, None
 
     indent = "  " * level
 
     if app_name and visible_window:
         # Initialize a tree string for the application if it doesn't exist
         if app_name not in tree_dict:
-            tree_dict[app_name] = ""
+            window_size_info = f" (Width: {width}, Height: {height})" if width and height else ""
+            tree_dict[app_name] = f"Application: {app_name}{window_size_info}\n"
 
         # Check if the control is interactive and has a valid name, and if it's visible
-        if is_valid_name(node.Name) and node.Name:
+        if is_valid_name(node.Name) and node.Name and node.ControlTypeName in interactive_types:
             bounding_rectangle = node.BoundingRectangle
             if bounding_rectangle and not bounding_rectangle.isempty() and is_visible(bounding_rectangle, node.BoundingRectangle):
                 x_center = bounding_rectangle.xcenter()
                 y_center = bounding_rectangle.ycenter()
 
+                # Determine if the control is enabled or disabled
+                state = "Enabled" if node.IsEnabled else "Disabled"
+
                 # Add to coordinates dictionary
                 cordinates[(app_name, node.ControlTypeName, node.Name)] = (x_center, y_center)
                 
                 # Add the tree representation of the interactive element
-                tree_dict[app_name] += f"{indent}Role: {node.ControlTypeName}, Name: {node.Name}\n"
+                tree_dict[app_name] += f"{indent}Role: {node.ControlTypeName}, Name: {node.Name}, State: {state}\n"
 
     # Recursively process children
     for child in node.GetChildren():
@@ -70,25 +74,28 @@ def build_a11y_tree(node: auto.PaneControl, app_name: str, level=0, tree_dict: d
 
     return tree_dict, cordinates
 
-# # Get the root element (usually the desktop)
-root = auto.GetRootControl()
 
 def ally_tree_and_coordinates(root):
     tree_representation, cordinates = build_a11y_tree(root, app_name="Desktop")
     tree_string = ''
-    mapping = {}
+    mapping = []
 
     for app, tree in tree_representation.items():
-        tree_string += f"\nApplication: {app}\n{tree}\n"
+        tree_string += f"\n{tree}\n"
     
     for key, coord in cordinates.items():
-        app_name, role, name = key
-        mapping[(role, name)] = coord
+        _, role, name = key
+        x, y = coord
+        mapping.append(dict(role=role, name=name, x=x, y=y))
 
     return tree_string, mapping
 
-# Generate the accessibility tree and coordinates
-# ally, cord = ally_tree_and_coordinates(root)
 
-# # Output the results
-# print(ally, cord)
+# # Get the root element (usually the desktop)
+root = auto.GetRootControl()
+
+# Generate the accessibility tree and coordinates
+ally, cord = ally_tree_and_coordinates(root)
+
+# Output the results
+print(ally, cord)
