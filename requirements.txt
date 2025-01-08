@@ -4,3 +4,8 @@ termcolor
 requests
 python-dotenv
 tenacity
+pyautogui
+pillow
+easyocr
+uiautomation
+ultralytics
