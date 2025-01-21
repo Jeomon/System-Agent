@@ -72,7 +72,7 @@ Final Answer: The calculator app was opened and the calculation 3 + 2 = 5 was pe
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-repository/system-agent.git
+   git clone git@github.com:Jeomon/System-Agent.git
    cd system-agent
    ```
 
@@ -86,6 +86,7 @@ Final Answer: The calculator app was opened and the calculation 3 + 2 = 5 was pe
 
    ```bash
    python app.py
+   Enter your query: <your query goes here>
    ```
 
 ## Known Limitations
