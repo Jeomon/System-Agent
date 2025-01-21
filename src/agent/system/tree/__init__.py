@@ -41,19 +41,10 @@ class Tree:
             if top_element is None:
                 return False
             # Check if the top element is inside the current element
-            # is_inside = auto.ControlsAreSame(element, top_element)
-            # # If the top element is the same as the given element, it's not covered
-            # if is_inside:
-            #     return False
-            
-            # Additional check: Ensure the top element is from an active window
-            top_window = top_element.GetTopLevelControl()
-            element_window = element.GetTopLevelControl()
-            if top_window is None or element_window is None:
+            is_inside = auto.ControlsAreSame(element, top_element)
+            # If the top element is the same as the given element, it's not covered
+            if is_inside:
                 return False
-            if auto.ControlsAreSame(top_window, element_window):
-                return False  # The element is covered by a different active window
-            
             return True
 
         def tree_traversal(node:auto.PaneControl):
