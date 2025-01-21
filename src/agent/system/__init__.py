@@ -67,9 +67,9 @@ class SystemAgent(BaseAgent):
         observation=action_result.content
         if self.verbose:
             print(colored(f'Observation: {observation}',color='green',attrs=['bold']))
-        state['messages'].pop() # Remove the last message for modification
+        state['messages'].pop() # Remove the last message (AI Message) for modification
         last_message=state['messages'][-1] #ImageMessage/HumanMessage
-        if isinstance(last_message,ImageMessage):
+        if isinstance(last_message,ImageMessage) or isinstance(last_message,HumanMessage):
             state['messages'][-1]=HumanMessage(f'<Observation>{state.get('prev_observation')}</Observation>')
         if self.verbose and self.token_usage:
             print(f'Input Tokens: {self.llm.tokens.input} Output Tokens: {self.llm.tokens.output} Total Tokens: {self.llm.tokens.total}')
@@ -121,8 +121,8 @@ class SystemAgent(BaseAgent):
         })
         desktop_state=self.desktop.get_state(use_vision=self.use_vision)
         image_obj=desktop_state.screenshot
-        human_prompt=f'Task: {input}\n'+self.human_prompt.format(observation="No Action",active_app=desktop_state.active_app,apps=desktop_state.apps_to_string(),interactive_elements=desktop_state.tree_state.elements_to_string())
-        messages=[SystemMessage(system_prompt),ImageMessage(text=human_prompt,image_obj=image_obj) if self.use_vision else HumanMessage(human_prompt)]
+        human_prompt=self.human_prompt.format(observation="No Action",active_app=desktop_state.active_app,apps=desktop_state.apps_to_string(),interactive_elements=desktop_state.tree_state.elements_to_string())
+        messages=[SystemMessage(system_prompt)]+[HumanMessage(f'Task: {input}\n'),ImageMessage(text=human_prompt,image_obj=image_obj)] if self.use_vision else [HumanMessage(f'Task: {input}\n'),HumanMessage(human_prompt)]
         state={
             'input':input,
             'agent_data':{},

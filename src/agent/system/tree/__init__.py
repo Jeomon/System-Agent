@@ -3,9 +3,6 @@ from src.agent.system.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES
 from PIL import Image,ImageDraw,ImageFont
 from typing import TYPE_CHECKING
 import uiautomation as auto
-from datetime import datetime
-from pathlib import Path
-from os import getcwd
 import random
 
 if TYPE_CHECKING:
@@ -44,10 +41,19 @@ class Tree:
             if top_element is None:
                 return False
             # Check if the top element is inside the current element
-            is_inside = auto.ControlsAreSame(element, top_element)
-            # If the top element is the same as the given element, it's not covered
-            if is_inside:
+            # is_inside = auto.ControlsAreSame(element, top_element)
+            # # If the top element is the same as the given element, it's not covered
+            # if is_inside:
+            #     return False
+            
+            # Additional check: Ensure the top element is from an active window
+            top_window = top_element.GetTopLevelControl()
+            element_window = element.GetTopLevelControl()
+            if top_window is None or element_window is None:
                 return False
+            if auto.ControlsAreSame(top_window, element_window):
+                return False  # The element is covered by a different active window
+            
             return True
 
         def tree_traversal(node:auto.PaneControl):
@@ -123,11 +129,7 @@ class Tree:
             draw.text((text_x, text_y), str(label), fill=(255, 255, 255), font=font)
 
         if save_screenshot:
-            date_time=datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-            folder_path=Path(getcwd()).joinpath('./screenshots')
-            folder_path.mkdir(parents=True,exist_ok=True)
-            path=folder_path.joinpath(f'screenshot_{date_time}.png')
-            screenshot.save(path.as_posix(),format='PNG')
+            self.desktop.save_screenshot(screenshot)
         return self.desktop.screenshot_in_bytes(screenshot)
 
     def build_selector_map(self, nodes: list[TreeElementNode]) -> dict[int, TreeElementNode]:

@@ -1,6 +1,9 @@
 from src.agent.system.desktop.views import DesktopState,App
 from pygetwindow import getActiveWindow,getAllWindows
 from src.agent.system.tree import Tree,TreeElementNode
+from datetime import datetime
+from pathlib import Path
+from os import getcwd
 from io import BytesIO
 from PIL import Image
 import pyautogui
@@ -34,3 +37,10 @@ class Desktop:
         screenshot.save(io,format='PNG')
         bytes=io.getvalue()
         return bytes
+    
+    def save_screenshot(self,screenshot:Image):
+        date_time=datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path=Path(getcwd()).joinpath('./screenshots')
+        folder_path.mkdir(parents=True,exist_ok=True)
+        path=folder_path.joinpath(f'screenshot_{date_time}.png')
+        screenshot.save(path.as_posix(),format='PNG')
