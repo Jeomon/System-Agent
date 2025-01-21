@@ -6,7 +6,7 @@ def read_markdown_file(file_path: str) -> str:
         markdown_content = f.read()
     return markdown_content
 
-def extract_llm_response(text):
+def extract_agent_data(text):
     # Dictionary to store extracted values
     result = {}
     # Check if it's Option 1 (Action-based)
@@ -48,36 +48,3 @@ def extract_llm_response(text):
         if route_match:
             result['Route'] = route_match.group(1).strip()
     return result
-
-def parse_ally_tree(tree_str):
-    tree_elements = []
-    # Split the string by lines
-    lines = tree_str.strip().split('\n')
-    for line in lines:
-        # Extract role and name from the line (assuming format like: "Role: ButtonControl, Name: Close")
-        match = re.search(r"Role:\s*(\w+Control),\s*Name:\s*(.+)", line.strip())
-        if match:
-            role = match.group(1).strip()
-            name = match.group(2).strip()
-            tree_elements.append({
-                'role': role,
-                'name': name
-            })
-    return tree_elements
-
-def find_missing_elements(original_tree, updated_tree):
-    original_set = {(el['role'], el['name']) for el in original_tree}
-    updated_set = {(el['role'], el['name']) for el in updated_tree}
-    # Find elements that are in the updated tree but not in the original tree
-    missing_elements = updated_set - original_set
-    return missing_elements
-
-
-def create_mapping_from_missing_elements(missing_elements, ocr_data):
-    mapping = []
-    for role, name in missing_elements:
-        # If the name exists in OCR data, create the mapping
-        if name in ocr_data:
-            x,y=ocr_data[name][0],ocr_data[name][1]
-            mapping.append(dict(role=role, name=name, x=x, y=y))
-    return mapping

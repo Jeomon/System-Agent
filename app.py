@@ -11,12 +11,12 @@ load_dotenv()
 # llm=ChatGroq(model='llama-3.1-70b-versatile',api_key=api_key,temperature=0)
 
 api_key=os.getenv('GOOGLE_API_KEY')
-llm=ChatGemini(model='gemini-1.5-flash',api_key=api_key,temperature=0)
+llm=ChatGemini(model='gemini-2.0-flash-exp',api_key=api_key,temperature=0)
 
 # api_key=os.getenv('MISTRAL_API_KEY')
 # llm=ChatMistral(model='open-codestral-mamba',api_key=api_key,temperature=0)
 
-agent=SystemAgent(llm=llm,verbose=True,strategy='ally_tree',screenshot=False)
+agent=SystemAgent(instructions=[],llm=llm,use_vision=True,verbose=True)
 user_query=input('Enter your query: ')
 agent_response=agent.invoke(user_query)
 print(agent_response)

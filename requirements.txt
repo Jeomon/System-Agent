@@ -6,6 +6,6 @@ python-dotenv
 tenacity
 pyautogui
 pillow
-easyocr
 uiautomation
-ultralytics
+ratelimit
+pygetwindow
