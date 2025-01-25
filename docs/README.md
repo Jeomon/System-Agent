@@ -1,4 +1,4 @@
-# System Agent
+# System Agent: Automating OS Tasks with AI
 
 ## Overview
 

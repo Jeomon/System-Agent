@@ -72,7 +72,6 @@ class Tree:
                     'control_type':node.ControlTypeName,
                     'bounding_box':bounding_box,
                     "center":center,
-                    "handle":node
                 }))
                 return None
             for child in node.GetChildren():

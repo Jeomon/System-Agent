@@ -1,28 +1,21 @@
-from experimental.views import TreeElementNode,BoundingBox,CenterCord,TreeState
+from src.agent.system.tree.views import TreeElementNode,BoundingBox,CenterCord,TreeState
+from src.agent.system.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES
 from PIL import Image,ImageDraw,ImageFont
+from typing import TYPE_CHECKING
 import uiautomation as auto
-from datetime import datetime
-from pathlib import Path
-from io import BytesIO
-from os import getcwd
-import pyautogui
 import random
 
-INTERACTIVE_CONTROL_TYPE_NAMES=[
-    'ButtonControl','ListItemControl','MenuItemControl,DocumentControl',
-    'EditControl','CheckBoxControl', 'RadioButtonControl','ComboBoxControl',
-    'HyperlinkControl','SplitButtonControl','TabItemControl','MenuItemControl',
-    'TreeItemControl','DataItemControl','HeaderItemControl'
-]
+if TYPE_CHECKING:
+    from src.agent.system.desktop import Desktop
 
 class Tree:
-    def __init__(self,use_vision=False):
-        self.use_vision=use_vision
+    def __init__(self,desktop:'Desktop'):
+        self.desktop=desktop
 
-    def get_state(self)->tuple[bytes,TreeState]:
+    def get_state(self,use_vision:bool=False)->tuple[bytes,TreeState]:
         root=auto.GetRootControl()
         nodes=self.get_interactive_nodes(node=root)
-        if self.use_vision:
+        if use_vision:
             screenshot=self.mark_screen(nodes=nodes,save_screenshot=True)
         else:
             screenshot=None
@@ -78,7 +71,8 @@ class Tree:
                     'name':node.Name.strip(),
                     'control_type':node.ControlTypeName,
                     'bounding_box':bounding_box,
-                    "center":center
+                    "center":center,
+                    "handle":node
                 }))
                 return None
             for child in node.GetChildren():
@@ -89,19 +83,8 @@ class Tree:
     def get_random_color(self):
         return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
-    def get_screenshot(self)->BytesIO:
-        screenshot=pyautogui.screenshot()
-        screenshot_bytes=self.screenshot_in_bytes(screenshot)
-        return BytesIO(screenshot_bytes)
-    
-    def screenshot_in_bytes(self,screenshot:Image)->bytes:
-        io=BytesIO()
-        screenshot.save(io,format='PNG')
-        bytes=io.getvalue()
-        return bytes
-
-    def mark_screen(self,nodes:list[TreeElementNode],save_screenshot:bool=False):
-        screenshot_bytes=self.get_screenshot()
+    def mark_screen(self,nodes:list[TreeElementNode],save_screenshot:bool=False)->bytes:
+        screenshot_bytes=self.desktop.get_screenshot()
         screenshot=Image.open(screenshot_bytes)
         draw=ImageDraw.Draw(screenshot)
         font_size=12
@@ -137,17 +120,8 @@ class Tree:
             draw.text((text_x, text_y), str(label), fill=(255, 255, 255), font=font)
 
         if save_screenshot:
-            date_time=datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-            folder_path=Path(getcwd()).joinpath('./screenshots')
-            folder_path.mkdir(parents=True,exist_ok=True)
-            path=folder_path.joinpath(f'screenshot_{date_time}.png')
-            screenshot.save(path.as_posix(),format='PNG')
-        return self.screenshot_in_bytes(screenshot)
+            self.desktop.save_screenshot(screenshot)
+        return self.desktop.screenshot_in_bytes(screenshot)
 
     def build_selector_map(self, nodes: list[TreeElementNode]) -> dict[int, TreeElementNode]:
         return {index:node for index,node in enumerate(nodes)}
-        
-
-if __name__=='__main__':
-    tree=Tree(use_vision=True)
-    screenshot,tree_state=tree.get_state()

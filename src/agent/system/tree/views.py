@@ -1,5 +1,4 @@
 from dataclasses import dataclass,field
-from uiautomation import Control
 
 @dataclass
 class TreeState:
@@ -27,7 +26,6 @@ class TreeElementNode:
     control_type:str
     bounding_box:BoundingBox
     center:CenterCord
-    handle:Control
 
     def __repr__(self):
         return f'TreeElementNode(name={self.name},control_type={self.control_type},bounding_box={self.bounding_box},center={self.center})'
