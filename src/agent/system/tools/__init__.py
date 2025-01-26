@@ -19,7 +19,7 @@ def type_tool(index:int,text:str,desktop:Desktop=None):
     element=desktop.get_element_by_index(index)
     center_cord=element.center
     pg.click(x=center_cord.x,y=center_cord.y,button='left',clicks=1)
-    pg.typewrite(text,interval=3)
+    pg.typewrite(text,interval=0.1)
     return f'Typed {text} on the element at index {index}.'
 
 @Tool('Scroll Tool',params=Scroll)

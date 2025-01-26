@@ -1,8 +1,8 @@
 from src.agent.system.tree.views import TreeElementNode,BoundingBox,CenterCord,TreeState
+from uiautomation import GetRootControl,Control,ControlFromPoint,ControlsAreSame
 from src.agent.system.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES
 from PIL import Image,ImageDraw,ImageFont
 from typing import TYPE_CHECKING
-import uiautomation as auto
 import random
 
 if TYPE_CHECKING:
@@ -13,18 +13,18 @@ class Tree:
         self.desktop=desktop
 
     def get_state(self,use_vision:bool=False)->tuple[bytes,TreeState]:
-        root=auto.GetRootControl()
+        root=GetRootControl()
         nodes=self.get_interactive_nodes(node=root)
         if use_vision:
-            screenshot=self.mark_screen(nodes=nodes,save_screenshot=True)
+            screenshot=self.mark_screen(nodes=nodes,save_screenshot=False)
         else:
             screenshot=None
         selector_map=self.build_selector_map(nodes=nodes)
         return (screenshot,TreeState(nodes=nodes,selector_map=selector_map))
 
-    def get_interactive_nodes(self,node:auto.Control)->list[TreeElementNode]:
+    def get_interactive_nodes(self,node:Control)->list[TreeElementNode]:
         interactive_nodes=[]
-        def is_element_covered(element:auto.Control):
+        def is_element_covered(element:Control):
             bounding_box = element.BoundingRectangle
             if not bounding_box:
                 return False  # If there's no bounding box, assume it's not covered
@@ -33,7 +33,7 @@ class Tree:
             center_y = bounding_box.ycenter()
             # Find the top-most element at the center point
             try:
-                top_element = auto.ControlFromPoint(center_x, center_y)
+                top_element = ControlFromPoint(center_x, center_y)
             except Exception as e:
                 print(f"Error fetching element from point: {e}")
                 return False
@@ -41,13 +41,13 @@ class Tree:
             if top_element is None:
                 return False
             # Check if the top element is inside the current element
-            is_inside = auto.ControlsAreSame(element, top_element)
+            is_inside = ControlsAreSame(element, top_element)
             # If the top element is the same as the given element, it's not covered
             if is_inside:
                 return False
             return True
 
-        def tree_traversal(node:auto.PaneControl):
+        def tree_traversal(node:Control):
             # Avoid including the minimized windows interactive elements
             if node.ControlTypeName=='WindowControl' and node.IsMinimize():
                 return None
@@ -72,6 +72,7 @@ class Tree:
                     'control_type':node.ControlTypeName,
                     'bounding_box':bounding_box,
                     "center":center,
+                    "handle":node
                 }))
                 return None
             for child in node.GetChildren():

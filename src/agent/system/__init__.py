@@ -26,6 +26,17 @@ tools=[
 
 class SystemAgent(BaseAgent):
     def __init__(self,instructions:list[str]=[],llm:BaseInference=None,use_vision:bool=False,max_iteration:int=10,verbose:bool=False,token_usage:bool=False) -> None:
+        """
+        Initialize a System Agent instance.
+
+        Args:
+            instructions (list[str], optional): A list of instructions for the agent to follow. Defaults to an empty list.
+            llm (BaseInference, optional): The language model inference engine used by the agent. Defaults to None.
+            use_vision (bool, optional): Whether to use vision capabilities for system interaction. Defaults to False.
+            max_iteration (int, optional): The maximum number of iterations the agent should perform. Defaults to 10.
+            verbose (bool, optional): Whether to enable verbose to show agent's flow. Defaults to False.
+            token_usage (bool, optional): Whether to track token usage. Defaults to False.
+        """
         self.name='System Agent'
         self.description='The System Agent is an AI-powered automation tool designed to interact with the operating system. It simulates human actions, such as opening applications, clicking buttons, typing, scrolling, and performing other system-level tasks.'
         self.registry=Registry(tools)
@@ -111,6 +122,8 @@ class SystemAgent(BaseAgent):
         return graph.compile(debug=False)
 
     def invoke(self,input:str):
+        if self.verbose:
+            print(f'Entering '+colored(self.name,'black','on_white'))
         system_prompt=self.system_prompt.format(**{
             'instructions':self.instructions,
             'current_datetime':datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -121,8 +134,11 @@ class SystemAgent(BaseAgent):
         })
         desktop_state=self.desktop.get_state(use_vision=self.use_vision)
         image_obj=desktop_state.screenshot
-        human_prompt=self.human_prompt.format(observation="No Action",active_app=desktop_state.active_app,apps=desktop_state.apps_to_string(),interactive_elements=desktop_state.tree_state.elements_to_string())
-        messages=[SystemMessage(system_prompt)]+[HumanMessage(f'Task: {input}\n'),ImageMessage(text=human_prompt,image_obj=image_obj)] if self.use_vision else [HumanMessage(f'Task: {input}\n'),HumanMessage(human_prompt)]
+        interactive_elements=desktop_state.tree_state.elements_to_string()
+        apps=desktop_state.apps_to_string()
+        active_app=desktop_state.active_app
+        human_prompt=self.human_prompt.format(observation="No Action",active_app=active_app,apps=apps,interactive_elements=interactive_elements)
+        messages=[SystemMessage(system_prompt),HumanMessage(f'Task: {input}')]+[ImageMessage(text=human_prompt,image_obj=image_obj) if self.use_vision else HumanMessage(human_prompt)]
         state={
             'input':input,
             'agent_data':{},
