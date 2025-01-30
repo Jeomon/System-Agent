@@ -16,7 +16,7 @@ class Tree:
         root=GetRootControl()
         nodes=self.get_interactive_nodes(node=root)
         if use_vision:
-            screenshot=self.mark_screen(nodes=nodes,save_screenshot=False)
+            screenshot=self.mark_screen(nodes=nodes,save_screenshot=True)
         else:
             screenshot=None
         selector_map=self.build_selector_map(nodes=nodes)
@@ -74,7 +74,7 @@ class Tree:
                     "center":center,
                     "handle":node
                 }))
-                return None
+                # return None
             for child in node.GetChildren():
                 tree_traversal(child)
         tree_traversal(node)

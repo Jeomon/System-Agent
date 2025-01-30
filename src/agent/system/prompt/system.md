@@ -47,9 +47,9 @@ Use the following tools for interacting and extracting information from the webp
 - While giving inputs to the tools give them as per the above requirement
 
 ## SELECTION INSTRUCTION
-- For selecting desktop icons, images, videos, folders, ..etc use double left click
-- For selecting icons inside start menu, start menu, buttons, radio, checkbox, ..etc use single left click
-- For opening context menu of the items above mentioned just single right click
+- For selecting desktop icons, images, videos, folders, ..etc in file explorer use `double left click`
+- For selecting elements inside start menu, start menu, buttons, radio, checkbox, ..etc use `single left click`
+- For opening context menu of the items above mentioned just `single right click`
 
 ---
 
