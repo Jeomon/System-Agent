@@ -16,7 +16,7 @@ class Tree:
         root=GetRootControl()
         nodes=self.get_interactive_nodes(node=root)
         if use_vision:
-            screenshot=self.mark_screen(nodes=nodes,save_screenshot=True)
+            screenshot=self.mark_screen(nodes=nodes,save_screenshot=False)
         else:
             screenshot=None
         selector_map=self.build_selector_map(nodes=nodes)
@@ -56,6 +56,8 @@ class Tree:
             if not node.IsEnabled:
                 return None
             # if is_element_covered(node):
+            #     # TODO Remove the behind window elements
+                
             #     return None
             # Check if it has interactive children
             interactive_childrens = []

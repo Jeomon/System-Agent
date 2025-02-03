@@ -1,6 +1,6 @@
 from src.agent.system.tools import click_tool,type_tool,scroll_tool,shortcut_tool,key_tool
-from src.agent.system.utils import read_markdown_file,extract_agent_data
 from src.message import HumanMessage,SystemMessage,AIMessage,ImageMessage
+from src.agent.system.utils import read_markdown_file,extract_agent_data
 from langgraph.graph import StateGraph,START,END
 from src.agent.system.state import AgentState
 from src.agent.system.registry import Registry
@@ -26,25 +26,15 @@ tools=[
 
 class SystemAgent(BaseAgent):
     def __init__(self,instructions:list[str]=[],llm:BaseInference=None,use_vision:bool=False,max_iteration:int=10,verbose:bool=False,token_usage:bool=False) -> None:
-        """
-        Initialize a System Agent instance.
-
-        Args:
-            instructions (list[str], optional): A list of instructions for the agent to follow. Defaults to an empty list.
-            llm (BaseInference, optional): The language model inference engine used by the agent. Defaults to None.
-            use_vision (bool, optional): Whether to use vision capabilities for system interaction. Defaults to False.
-            max_iteration (int, optional): The maximum number of iterations the agent should perform. Defaults to 10.
-            verbose (bool, optional): Whether to enable verbose to show agent's flow. Defaults to False.
-            token_usage (bool, optional): Whether to track token usage. Defaults to False.
-        """
         self.name='System Agent'
         self.description='The System Agent is an AI-powered automation tool designed to interact with the operating system. It simulates human actions, such as opening applications, clicking buttons, typing, scrolling, and performing other system-level tasks.'
         self.registry=Registry(tools)
         self.desktop=Desktop()
         self.instructions=self.format_instructions(instructions)
         self.system_prompt=read_markdown_file(f'./src/agent/system/prompt/system.md')
-        self.human_prompt=read_markdown_file(f'./src/agent/system/prompt/human.md')
-        self.ai_prompt=read_markdown_file(f'./src/agent/system/prompt/ai.md')
+        self.observation_prompt=read_markdown_file(f'./src/agent/system/prompt/observation.md')
+        self.action_prompt=read_markdown_file(f'./src/agent/system/prompt/action.md')
+        self.answer_prompt=read_markdown_file(f'./src/agent/system/prompt/answer.md')
         self.graph=self.create_graph()
         self.max_iteration=max_iteration
         self.use_vision=use_vision
@@ -80,26 +70,30 @@ class SystemAgent(BaseAgent):
             print(colored(f'Observation: {observation}',color='green',attrs=['bold']))
         state['messages'].pop() # Remove the last message (AI Message) for modification
         last_message=state['messages'][-1] #ImageMessage/HumanMessage
-        if isinstance(last_message,ImageMessage) or isinstance(last_message,HumanMessage):
+        if isinstance(last_message,(ImageMessage,HumanMessage)):
             state['messages'][-1]=HumanMessage(f'<Observation>{state.get('prev_observation')}</Observation>')
         if self.verbose and self.token_usage:
             print(f'Input Tokens: {self.llm.tokens.input} Output Tokens: {self.llm.tokens.output} Total Tokens: {self.llm.tokens.total}')
         desktop_state=self.desktop.get_state(use_vision=self.use_vision)
         image_obj=desktop_state.screenshot
-        ai_prompt=self.ai_prompt.format(thought=thought,action_name=action_name,action_input=json.dumps(action_input,indent=2),route=route)
-        user_prompt=self.human_prompt.format(observation=observation,active_app=desktop_state.active_app,apps=desktop_state.apps_to_string(),interactive_elements=desktop_state.tree_state.elements_to_string())
+        ai_prompt=self.action_prompt.format(thought=thought,action_name=action_name,action_input=json.dumps(action_input,indent=2),route=route)
+        user_prompt=self.observation_prompt.format(observation=observation,active_app=desktop_state.active_app,apps=desktop_state.apps_to_string(),interactive_elements=desktop_state.tree_state.elements_to_string())
         messages=[AIMessage(ai_prompt),ImageMessage(text=user_prompt,image_obj=image_obj) if self.use_vision else HumanMessage(user_prompt)]
         return {**state,'agent_data':agent_data,'messages':messages,'prev_observation':observation}
 
     def final(self,state:AgentState):
+        state['messages'].pop() # Remove the last message for modification
+        last_message=state['messages'][-1] # ImageMessage/HumanMessage
+        if isinstance(last_message,(ImageMessage,HumanMessage)):
+            state['messages'][-1]=HumanMessage(f'<Observation>{state.get('prev_observation')}</Observation>')
         agent_data=state.get('agent_data')
-        if self.iteration<self.max_iteration:
-            final_answer=agent_data.get('Final Answer')
-        else:
-            final_answer='Maximum Iteration Reached'
+        thought=agent_data.get('Thought')
+        final_answer=agent_data.get('Final Answer')
+        answer_prompt=self.answer_prompt.format(thought=thought,final_answer=final_answer)
+        messages=[AIMessage(answer_prompt)]
         if self.verbose:
             print(colored(f'Final Answer: {final_answer}',color='cyan',attrs=['bold']))
-        return {**state,'output':final_answer}
+        return {**state,'output':final_answer,'messages':messages}
 
     def controller(self,state:AgentState):
         if self.iteration<self.max_iteration:
@@ -137,7 +131,7 @@ class SystemAgent(BaseAgent):
         interactive_elements=desktop_state.tree_state.elements_to_string()
         apps=desktop_state.apps_to_string()
         active_app=desktop_state.active_app
-        human_prompt=self.human_prompt.format(observation="No Action",active_app=active_app,apps=apps,interactive_elements=interactive_elements)
+        human_prompt=self.observation_prompt.format(observation="No Action",active_app=active_app,apps=apps,interactive_elements=interactive_elements)
         messages=[SystemMessage(system_prompt),HumanMessage(f'Task: {input}')]+[ImageMessage(text=human_prompt,image_obj=image_obj) if self.use_vision else HumanMessage(human_prompt)]
         state={
             'input':input,
