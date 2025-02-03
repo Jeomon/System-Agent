@@ -9,3 +9,5 @@ pillow
 uiautomation
 ratelimit
 pygetwindow
+pyaudio
+keyboard
