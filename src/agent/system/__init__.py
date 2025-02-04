@@ -3,6 +3,7 @@ from src.message import HumanMessage,SystemMessage,AIMessage,ImageMessage
 from src.agent.system.utils import read_markdown_file,extract_agent_data
 from langgraph.graph import StateGraph,START,END
 from src.agent.system.state import AgentState
+from src.memory.episodic import EpisodicMemory
 from src.agent.system.registry import Registry
 from src.agent.system.desktop import Desktop
 from src.inference import BaseInference
@@ -25,7 +26,7 @@ tools=[
 ]
 
 class SystemAgent(BaseAgent):
-    def __init__(self,instructions:list[str]=[],llm:BaseInference=None,use_vision:bool=False,max_iteration:int=10,verbose:bool=False,token_usage:bool=False) -> None:
+    def __init__(self,instructions:list[str]=[],llm:BaseInference=None,episodic_memory:EpisodicMemory=None,use_vision:bool=False,max_iteration:int=10,verbose:bool=False,token_usage:bool=False) -> None:
         self.name='System Agent'
         self.description='The System Agent is an AI-powered automation tool designed to interact with the operating system. It simulates human actions, such as opening applications, clicking buttons, typing, scrolling, and performing other system-level tasks.'
         self.registry=Registry(tools)
@@ -35,6 +36,7 @@ class SystemAgent(BaseAgent):
         self.observation_prompt=read_markdown_file(f'./src/agent/system/prompt/observation.md')
         self.action_prompt=read_markdown_file(f'./src/agent/system/prompt/action.md')
         self.answer_prompt=read_markdown_file(f'./src/agent/system/prompt/answer.md')
+        self.episodic_memory=episodic_memory
         self.graph=self.create_graph()
         self.max_iteration=max_iteration
         self.use_vision=use_vision
@@ -86,9 +88,13 @@ class SystemAgent(BaseAgent):
         last_message=state['messages'][-1] # ImageMessage/HumanMessage
         if isinstance(last_message,(ImageMessage,HumanMessage)):
             state['messages'][-1]=HumanMessage(f'<Observation>{state.get('prev_observation')}</Observation>')
-        agent_data=state.get('agent_data')
-        thought=agent_data.get('Thought')
-        final_answer=agent_data.get('Final Answer')
+        if self.iteration<self.max_iteration:
+            agent_data=state.get('agent_data')
+            thought=agent_data.get('Thought')
+            final_answer=agent_data.get('Final Answer')
+        else:
+            thought='Looks like I have reached the maximum iteration limit reached.',
+            final_answer='Maximum Iteration reached.'
         answer_prompt=self.answer_prompt.format(thought=thought,final_answer=final_answer)
         messages=[AIMessage(answer_prompt)]
         if self.verbose:
@@ -126,6 +132,9 @@ class SystemAgent(BaseAgent):
             'home_dir':Path.home().as_posix(),
             'user':getuser()
         })
+        # Attach episodic memory to the system prompt 
+        if self.episodic_memory and self.episodic_memory.retrieve(input):
+            system_prompt=self.episodic_memory.attach_memory(system_prompt)
         desktop_state=self.desktop.get_state(use_vision=self.use_vision)
         image_obj=desktop_state.screenshot
         interactive_elements=desktop_state.tree_state.elements_to_string()

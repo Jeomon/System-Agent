@@ -39,8 +39,9 @@ Use the following tools for interacting and extracting information from the webp
 - Sometimes labels overlap, so use the `element context` to verify the correct element
 
 ## APP MANAGEMENT
-- The screen should only contain the apps that are wanted for the task, this is to avoid distractions caused by other apps.
-- So either close or minimize such apps to keep the screen clean.
+- The screen should only contain the apps that are needed for the task, this is to avoid distractions caused by any other apps
+- You can either close or minimize the unwanted apps that were open
+- Once the purpose of an app is over, don't forget to close or minimize that app before going to the next task
 
 ## TOOL GUIDELINES
 - The tools are implemented using the **PyAutoGUI** python library

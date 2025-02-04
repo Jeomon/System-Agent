@@ -14,7 +14,7 @@ llm=ChatGemini(model='gemini-2.0-flash-exp',api_key=google_api_key,temperature=0
 speech_llm=AudioGroq(model='whisper-large-v3',mode='translations',api_key=groq_api_key,temperature=0)
 
 # Initialize Web Agent
-agent=SystemAgent(llm=llm,use_vision=True,verbose=True)
+agent=SystemAgent(llm=llm,use_vision=False,verbose=True)
 
 mode=input('Enter the mode of input (text/voice): ')
 if mode=='text':

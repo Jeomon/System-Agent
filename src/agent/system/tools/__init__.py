@@ -33,7 +33,7 @@ def scroll_tool(direction:Literal['up','down']='',amount:int=0,desktop:Desktop=N
 
 @Tool('Shortcut Tool',params=Shortcut)
 def shortcut_tool(shortcut:list[str],desktop:Desktop=None):
-    '''Presses the combination of keys in the shortcut.'''
+    '''Presses a combination of keys in the shortcut to perform that action.'''
     pg.hotkey(*shortcut)
     return f'Pressed {'+'.join(shortcut)}.'
 
