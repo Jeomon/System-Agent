@@ -16,7 +16,7 @@ class Desktop:
         active_window=getActiveWindow()
         active_app=active_window.title
         windows=self.get_windows_in_z_order()
-        apps=[App(name=window.title,is_maximized=window.isMaximized,is_minimized=window.isMinimized) for window in windows]
+        apps=[App(name=window.title,depth=depth,is_maximized=window.isMaximized,is_minimized=window.isMinimized) for depth,window in enumerate(windows)]
         screenshot,tree_state=tree.get_state(use_vision=use_vision)
         self.desktop_state=DesktopState(active_app=active_app,apps=apps,screenshot=screenshot,tree_state=tree_state)
         return self.desktop_state
@@ -32,7 +32,7 @@ class Desktop:
         windows = getAllWindows()
         # Sort windows based on their Z-order (front to back)
         # We'll use the "isActive" property to get the most front window
-        sorted_windows = sorted(windows, key=lambda w: w.isActive, reverse=True)
+        sorted_windows = sorted([ window for window in windows if window.title.strip()], key=lambda w: w.isActive, reverse=True)
         return sorted_windows
     
     def get_screenshot(self)->BytesIO:

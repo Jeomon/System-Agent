@@ -7,7 +7,7 @@ class TreeState:
     selector_map:dict[int,'TreeElementNode']=field(default_factory={})
 
     def elements_to_string(self)->str:
-        return '\n'.join([f'{index} - ControlType: {node.control_type} Name: {node.name}' for index,node in enumerate(self.nodes)])
+        return '\n'.join([f'Label: {index} - ControlType: {node.control_type} Name: {node.name}' for index,node in enumerate(self.nodes)])
 
 @dataclass
 class BoundingBox:

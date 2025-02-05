@@ -25,6 +25,32 @@ Use the following tools for interacting and extracting information from the webp
 - **Home Directory**: {home_dir}
 - **Username**: {user}
 
+## Input Structure:
+- Active App: The app that is on the foreground with depth 0
+- Open Apps: The apps that are open but have depth > 0. It will be presented in the following format:
+
+```
+<app_index> - App Name: <app_name> - Depth: <app_depth> - Is Minimized: {is_minimized} - Is Maximized: {is_maximized}
+```
+    - app_index : Unique numerical Identifier for the app
+    - app_name : The name of the app
+    - app_depth : The hierarchical depth of the app in the system
+    - is_minimized : Tells whether the app is minimized or not
+    - is_maximized : Tells whether the app is maximized or not
+
+**Example:** 0 - App Name: File Explorer - Depth: 0 - Is Minimized: False - Is Maximized: False
+
+- Interactive Elements: List of all interactive elements present in the screen. The list consist of elements in the following format:
+
+```
+Label: <element_index> - ControlType: <control_type> Name: <element_name>
+```
+    - element_index : Unique numerical Identifier for interacting with that element
+    - control_type : Tells the type of the interactive element
+    - element_name : The name present for that element
+
+**Example:** 8 - ControlType: ButtonControl - Name: FileExplorer
+
 ## ELEMENT CONTEXT
 - For more details regarding an element use the `Interactive Elements`
 - Identify the element in the screenshot use the label to find the element from that list

@@ -45,7 +45,7 @@ class Tree:
             return True
         
         def is_window_minimized(node: Control):
-            return node.ControlTypeName == 'WindowControl' and node.IsMinimize()
+            return node.ControlTypeName in ['WindowControl','PaneControl']  and node.IsMinimize()
 
         def is_element_interactive(node: Control):
             return node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES
@@ -55,11 +55,8 @@ class Tree:
                 return None
             if not node.IsEnabled:
                 return None
-            # if is_element_covered(node):
-            #     # TODO Remove the behind window elements
-                
-            #     return None
-            # Check if it has interactive children
+            if is_element_covered(node):
+                return None
             interactive_childrens = []
             for child in node.GetChildren():
                 if is_element_interactive(child):
