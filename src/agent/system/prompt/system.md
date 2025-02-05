@@ -30,7 +30,7 @@ Use the following tools for interacting and extracting information from the webp
 - Open Apps: The apps that are open but have depth > 0. It will be presented in the following format:
 
 ```
-<app_index> - App Name: <app_name> - Depth: <app_depth> - Is Minimized: {is_minimized} - Is Maximized: {is_maximized}
+<app_index> - App Name: <app_name> - Depth: <app_depth> - Is Minimized: <is_minimized> - Is Maximized: <is_maximized>
 ```
     - app_index : Unique numerical Identifier for the app
     - app_name : The name of the app
