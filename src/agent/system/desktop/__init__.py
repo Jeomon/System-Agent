@@ -1,6 +1,7 @@
 from src.agent.system.desktop.views import DesktopState,App
-from pygetwindow import getActiveWindow,getAllWindows
 from src.agent.system.tree import Tree,TreeElementNode
+from pygetwindow import getActiveWindow
+from uiautomation import GetRootControl
 from datetime import datetime
 from pathlib import Path
 from io import BytesIO
@@ -16,24 +17,19 @@ class Desktop:
         active_window=getActiveWindow()
         active_app=active_window.title
         windows=self.get_windows_in_z_order()
-        apps=[App(name=window.title,depth=depth,is_maximized=window.isMaximized,is_minimized=window.isMinimized) for depth,window in enumerate(windows)]
+        apps=[App(name=window.Name,depth=depth,is_maximized=window.IsMaximize(),is_minimized=window.IsMinimize()) for depth,window in enumerate(windows) if window.Name!=active_app]
         screenshot,tree_state=tree.get_state(use_vision=use_vision)
         self.desktop_state=DesktopState(active_app=active_app,apps=apps,screenshot=screenshot,tree_state=tree_state)
         return self.desktop_state
+    
+    def get_windows_in_z_order(self):
+        return [w for w in GetRootControl().GetChildren()]
     
     def get_element_by_index(self,index:int)->TreeElementNode:
         selector_map=self.desktop_state.tree_state.selector_map
         if index not in selector_map:
             raise ValueError(f'Invalid index {index}')
         return selector_map.get(index)
-    
-    def get_windows_in_z_order(self):
-        # Get all open windows with titles
-        windows = getAllWindows()
-        # Sort windows based on their Z-order (front to back)
-        # We'll use the "isActive" property to get the most front window
-        sorted_windows = sorted([ window for window in windows if window.title.strip()], key=lambda w: w.isActive, reverse=True)
-        return sorted_windows
     
     def get_screenshot(self)->BytesIO:
         screenshot=pyautogui.screenshot()

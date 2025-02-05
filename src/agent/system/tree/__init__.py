@@ -1,5 +1,5 @@
 from src.agent.system.tree.views import TreeElementNode,BoundingBox,CenterCord,TreeState
-from uiautomation import GetRootControl,Control,ControlFromPoint,ControlsAreSame
+from uiautomation import GetRootControl,Control,ControlFromPoint
 from src.agent.system.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES
 from PIL import Image,ImageDraw,ImageFont
 from typing import TYPE_CHECKING
@@ -24,42 +24,28 @@ class Tree:
 
     def get_interactive_nodes(self, node: Control) -> list[TreeElementNode]:
         interactive_nodes = []
-
-        def is_element_covered(node: Control):
-            bounding_box = node.BoundingRectangle
-            if not bounding_box:
-                return False  # If there's no bounding box, assume it's not covered
-            # Calculate the center point of the element
-            center_x = bounding_box.xcenter()
-            center_y = bounding_box.ycenter()
-            # Find the top-most element at the center point
-            try:
-                top_node = ControlFromPoint(center_x, center_y)
-            except Exception as e:
-                print(f"Error fetching element from point: {e}")
-                return False
-            if top_node is None:
-                return False
-            if ControlsAreSame(node, top_node):  # If same, it's not covered
-                return False
-            return True
-        
         def is_window_minimized(node: Control):
             return node.ControlTypeName in ['WindowControl','PaneControl']  and node.IsMinimize()
 
         def is_element_interactive(node: Control):
             return node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES
-
+        
+        def is_element_visible(node:Control,threshold:int=0):
+            box=node.BoundingRectangle
+            width=box.width()
+            height=box.height()
+            area=width*height
+            return area >threshold
+            
         def tree_traversal(node: Control):
             if is_window_minimized(node):
                 return None
             if not node.IsEnabled:
                 return None
-            if is_element_covered(node):
-                return None
+            
             interactive_childrens = []
             for child in node.GetChildren():
-                if is_element_interactive(child):
+                if is_element_interactive(child) and is_element_visible(child):
                     interactive_childrens.append(child)
 
             if is_element_interactive(node) and interactive_childrens:
@@ -68,7 +54,7 @@ class Tree:
                     tree_traversal(child)
             else:
                 # If no interactive children, include this node
-                if is_element_interactive(node):
+                if is_element_interactive(node) and is_element_visible(node):
                     box = node.BoundingRectangle
                     bounding_box = BoundingBox(
                         left=box.left, top=box.top, right=box.right, bottom=box.bottom
